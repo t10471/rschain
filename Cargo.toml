@@ -1,0 +1,6 @@
+[package]
+name = "blockchain"
+version = "0.1.0"
+authors = ["t10471 <t104711202@gmail.com>"]
+
+[dependencies]
