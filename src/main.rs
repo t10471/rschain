@@ -15,16 +15,26 @@ extern crate tokio_io;
 extern crate hyper;
 extern crate tokio_fs;
 
+extern crate rand;
+extern crate sha2;
+extern crate ed25519_dalek;
+
+extern crate rust_base58;
+
+extern crate rocksdb;
+
 mod p2p;
 mod rpc;
+mod account;
 
 use tokio::prelude::*;
 use tokio::runtime::Runtime;
 
+use rust_base58::ToBase58;
+
 #[macro_use]
 extern crate clap;
-
-use clap::App;
+use clap::{App, ArgMatches};
 
 #[derive(Debug)]
 struct Conf {
@@ -34,8 +44,27 @@ struct Conf {
 }
 
 fn main() {
-  let conf = parse_args();
+  let yaml = load_yaml!("cli.yml");
+
+  match App::from_yaml(yaml).get_matches().subcommand() {
+    ("node", Some(m)) => start_node(m),
+    ("account", Some(m)) => manage_account(m),
+    (s, _) => println!("{} is undefined subcommand", s),
+  }
+}
+
+fn start_node(matches: &ArgMatches) {
+  let p2p = matches.value_of("p2p").unwrap_or("127.0.0.1:8846");
+  let rpc = matches.value_of("rpc").unwrap_or("127.0.0.1:8845");
+  let peers = mk_peers(matches);
+  let conf = Conf {
+    p2p: p2p.to_string(),
+    rpc: rpc.to_string(),
+    peers: peers,
+  };
+
   println!("{:?}", conf);
+
   let mut rt = Runtime::new().unwrap();
   p2p::start_server(&mut rt, &conf.p2p, conf.peers);
   println!("chat server running on {}", conf.p2p);
@@ -44,21 +73,19 @@ fn main() {
   rt.shutdown_on_idle().wait().unwrap();
 }
 
-fn parse_args() -> Conf {
-  let yaml = load_yaml!("cli.yml");
-  let matches = App::from_yaml(yaml).get_matches();
-
-  let p2p = matches.value_of("p2p").unwrap_or("127.0.0.1:8846");
-  let rpc = matches.value_of("rpc").unwrap_or("127.0.0.1:8845");
-  let peers = matches
+fn mk_peers(matches: &ArgMatches) -> Vec<String> {
+  matches
     .value_of("peers")
     .unwrap_or("")
     .split(",")
     .map(|s| s.to_string())
-    .collect();
-  Conf {
-    p2p: p2p.to_string(),
-    rpc: rpc.to_string(),
-    peers: peers,
+    .collect()
+}
+
+fn manage_account(matches: &ArgMatches) {
+  if matches.is_present("create") {
+    let keypair = account::create();
+    println!("seceret key {:?}", keypair.secret.to_bytes().to_base58());
+    println!("public key {:?}", keypair.public.to_bytes().to_base58());
   }
 }

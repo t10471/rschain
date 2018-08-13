@@ -1,23 +1,35 @@
 name: blockchain
 version: "0.1.0"
 author: t10471 <t104711202@gmail.com>
-about: Start block chain
 args:
-    - p2p:
-        short: p
-        long: p2p
-        value_name: URL
-        help: Set a p2p server URL
-        takes_value: true
-    - rpc:
-        short: r
-        long: rpc
-        value_name: URL
-        help: Set a rpc server URL
-        takes_value: true
-    - peers:
-        short: e
-        long: peers
-        value_name: Peer URL
-        help: Sets a peers URL
-        takes_value: true
+about: rschain comand line tool
+subcommands:
+    - account:
+        about: Account management
+        args:
+            - create:
+                short: c
+                long: create
+                help: Create account
+                takes_value: false
+    - node:
+        about: Start block chain
+        args:
+            - p2p:
+                short: p
+                long: p2p
+                value_name: URL
+                help: Set a p2p server URL
+                takes_value: true
+            - rpc:
+                short: r
+                long: rpc
+                value_name: URL
+                help: Set a rpc server URL
+                takes_value: true
+            - peers:
+                short: e
+                long: peers
+                value_name: Peer URL
+                help: Sets a peers URL
+                takes_value: true
