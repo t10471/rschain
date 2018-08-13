@@ -1,6 +1,6 @@
 [package]
 name = "rschain"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["t10471 <t104711202@gmail.com>"]
 
 [dependencies]
@@ -23,3 +23,8 @@ sha2 = "^0.7"
 rand = "0.4"
 rust-base58 = "*"
 rocksdb = "0.10"
+protos = { path = "protos" }
+
+[[bin]]
+path = "rschain/main.rs"
+name = "rschain"

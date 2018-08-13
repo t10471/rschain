@@ -13,11 +13,9 @@ use std::mem;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, Once, ONCE_INIT};
 
-/// Shorthand for the transmit half of the message channel.
-type Tx = mpsc::UnboundedSender<Bytes>;
+type Sender = mpsc::UnboundedSender<Bytes>;
 
-/// Shorthand for the receive half of the message channel.
-type Rx = mpsc::UnboundedReceiver<Bytes>;
+type Reciver = mpsc::UnboundedReceiver<Bytes>;
 
 #[derive(Clone)]
 struct Shared {
@@ -25,7 +23,7 @@ struct Shared {
 }
 
 struct Peers {
-  peers: HashMap<SocketAddr, Tx>,
+  peers: HashMap<SocketAddr, Sender>,
 }
 
 fn all_peers() -> Shared {
@@ -45,52 +43,44 @@ fn all_peers() -> Shared {
   }
 }
 
-/// The state for each connected client.
 struct Peer {
   name: BytesMut,
   lines: Lines,
-  rx: Rx,
+  reciver: Reciver,
   addr: SocketAddr,
 }
 
-/// Line based codec
 #[derive(Debug)]
 struct Lines {
   socket: TcpStream,
-  rd: BytesMut,
-  wr: BytesMut,
+  reader: BytesMut,
+  writer: BytesMut,
 }
 
 impl Peer {
-  /// Create a new instance of `Peer`.
-  fn new(name: BytesMut, lines: Lines) -> (Peer, Tx) {
-    // Get the client socket address
+  fn new(name: BytesMut, lines: Lines) -> (Peer, Sender) {
     let addr = lines.socket.peer_addr().unwrap();
-    // Create a channel for this peer
-    let (tx, rx) = mpsc::unbounded();
-    // Add an entry for this `Peer` in the shared state map.
+    let (sender, reciver) = mpsc::unbounded();
     (
       Peer {
         name,
         lines,
-        rx,
+        reciver,
         addr,
       },
-      tx,
+      sender,
     )
   }
 }
 
-/// This is where a connected client is managed.
 impl Future for Peer {
   type Item = ();
   type Error = io::Error;
 
   fn poll(&mut self) -> Poll<(), io::Error> {
     const LINES_PER_TICK: usize = 10;
-    // Receive all messages from peers.
     for i in 0..LINES_PER_TICK {
-      match self.rx.poll().unwrap() {
+      match self.reciver.poll().unwrap() {
         Async::Ready(Some(v)) => {
           self.lines.buffer(&v);
           if i + 1 == LINES_PER_TICK {
@@ -101,15 +91,12 @@ impl Future for Peer {
       }
     }
 
-    // Flush the write buffer to the socket
     let _ = self.lines.poll_flush()?;
 
-    // Read new lines from the socket
     while let Async::Ready(line) = self.lines.poll()? {
       println!("Received line ({:?}) : {:?}", self.name, line);
 
       if let Some(message) = line {
-        // Append the peer's name to the front of the line:
         let mut line = self.name.clone();
         line.extend_from_slice(b": ");
         line.extend_from_slice(&message);
@@ -139,46 +126,35 @@ impl Drop for Peer {
 }
 
 impl Lines {
-  /// Create a new `Lines` codec backed by the socket
   fn new(socket: TcpStream) -> Self {
     Lines {
       socket,
-      rd: BytesMut::new(),
-      wr: BytesMut::new(),
+      reader: BytesMut::new(),
+      writer: BytesMut::new(),
     }
   }
 
-  /// Buffer a line.
   fn buffer(&mut self, line: &[u8]) {
-    self.wr.reserve(line.len());
-    self.wr.put(line);
+    self.writer.reserve(line.len());
+    self.writer.put(line);
   }
 
-  /// Flush the write buffer to the socket
   fn poll_flush(&mut self) -> Poll<(), io::Error> {
-    // As long as there is buffered data to write, try to write it.
-    while !self.wr.is_empty() {
-      // Try to write some bytes to the socket
-      let n = try_ready!(self.socket.poll_write(&self.wr));
+    while !self.writer.is_empty() {
+      let n = try_ready!(self.socket.poll_write(&self.writer));
 
-      // As long as the wr is not empty, a successful write should
-      // never write 0 bytes.
       assert!(n > 0);
 
-      // This discards the first `n` bytes of the buffer.
-      let _ = self.wr.split_to(n);
+      let _ = self.writer.split_to(n);
     }
 
     Ok(Async::Ready(()))
   }
 
-  /// Read data from the socket.
   fn fill_read_buf(&mut self) -> Poll<(), io::Error> {
     loop {
-      // Ensure the read buffer has capacity.
-      self.rd.reserve(1024);
-      // Read data into the buffer.
-      let n = try_ready!(self.socket.read_buf(&mut self.rd));
+      self.reader.reserve(1024);
+      let n = try_ready!(self.socket.read_buf(&mut self.reader));
 
       if n == 0 {
         return Ok(Async::Ready(()));
@@ -192,22 +168,18 @@ impl Stream for Lines {
   type Error = io::Error;
 
   fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-    // First, read any new data that might have been received off the socket
     let sock_closed = self.fill_read_buf()?.is_ready();
 
-    // Now, try finding lines
     let pos = self
-      .rd
+      .reader
       .windows(2)
       .enumerate()
       .find(|&(_, bytes)| bytes == b"\r\n")
       .map(|(i, _)| i);
 
     if let Some(pos) = pos {
-      // Remove the line from the read buffer and set it to `line`.
-      let mut line = self.rd.split_to(pos + 2);
+      let mut line = self.reader.split_to(pos + 2);
 
-      // Drop the trailing \r\n
       line.split_off(pos);
       return Ok(Async::Ready(Some(line)));
     }
@@ -220,7 +192,6 @@ impl Stream for Lines {
   }
 }
 
-/// Spawn a task to manage the socket.
 fn process(socket: TcpStream) {
   let lines = Lines::new(socket);
   let connection = lines
@@ -244,7 +215,6 @@ fn process(socket: TcpStream) {
       println!("`{:?}` is joining the chat", remote);
       let (peer, tx) = Peer::new(BytesMut::from(remote), lines);
       let all = all_peers().inner;
-      // tx.unbounded_send(BytesMut::from(&b"hello\r\n"[..]).freeze().clone()).unwrap();
       all.lock().unwrap().peers.insert(peer.addr, tx);
       Either::B(peer)
     })

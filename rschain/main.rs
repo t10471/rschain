@@ -23,14 +23,14 @@ extern crate rust_base58;
 
 extern crate rocksdb;
 
+extern crate serde;
+
 mod p2p;
 mod rpc;
 mod account;
 
 use tokio::prelude::*;
 use tokio::runtime::Runtime;
-
-use rust_base58::ToBase58;
 
 #[macro_use]
 extern crate clap;
@@ -84,8 +84,8 @@ fn mk_peers(matches: &ArgMatches) -> Vec<String> {
 
 fn manage_account(matches: &ArgMatches) {
   if matches.is_present("create") {
-    let keypair = account::create();
-    println!("seceret key {:?}", keypair.secret.to_bytes().to_base58());
-    println!("public key {:?}", keypair.public.to_bytes().to_base58());
+    let account = account::create();
+    println!("seceret key {:?}", account.secret.as_ref().unwrap().to_bytes());
+    println!("public key {:?}", account.address());
   }
 }
