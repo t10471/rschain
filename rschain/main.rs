@@ -1,40 +1,40 @@
+extern crate hyper;
 #[macro_use]
 extern crate futures;
 extern crate bytes;
 extern crate http;
 extern crate httparse;
 
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate time;
+
 extern crate tokio;
 extern crate tokio_codec;
 extern crate tokio_io;
-
-extern crate hyper;
 extern crate tokio_fs;
+
+use tokio::prelude::*;
+use tokio::runtime::Runtime;
 
 extern crate rand;
 extern crate sha2;
 extern crate ed25519_dalek;
-
 extern crate rust_base58;
 
 extern crate rocksdb;
 
-extern crate serde;
+#[macro_use]
+extern crate clap;
+use clap::{App, ArgMatches};
 
 mod p2p;
 mod rpc;
 mod account;
 
-use tokio::prelude::*;
-use tokio::runtime::Runtime;
-
-#[macro_use]
-extern crate clap;
-use clap::{App, ArgMatches};
+extern crate protos;
 
 #[derive(Debug)]
 struct Conf {
