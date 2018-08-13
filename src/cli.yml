@@ -3,12 +3,6 @@ version: "0.1.0"
 author: t10471 <t104711202@gmail.com>
 about: Start block chain
 args:
-    - config:
-        short: c
-        long: config
-        value_name: FILE
-        help: Sets a custom config file
-        takes_value: true
     - p2p:
         short: p
         long: p2p
