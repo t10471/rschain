@@ -28,3 +28,8 @@ protos = { path = "protos" }
 [[bin]]
 path = "rschain/main.rs"
 name = "rschain"
+
+[workspace]
+members = [
+    "protos",
+]

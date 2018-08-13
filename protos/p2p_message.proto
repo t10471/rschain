@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+
+message Message {
+    enum MessageType {
+        Handshake = 0;
+        SendTransaction = 1;
+        SendBlock = 2;
+        Bye = 3;
+    }
+
+    MessageType type = 1;
+    bytes payload = 2;
+}
+
+message Transaction {
+    enum TransactionType {
+        Dummy = 0;
+        Transfer = 1;
+        Issue = 2;
+    }
+ 
+    TransactionType type = 1;
+    bytes signature = 2;
+    int64 timestamp = 3;
+    bytes payload = 4;
+}
+
+message Block {
+    message BlockHeader {
+        int64 timestamp = 1;
+        bytes transaction_root = 2;
+        bytes previous = 3;
+    }
+
+    message BlockBody {
+        repeated Transaction Transactions = 1;
+    }
+
+    BlockHeader header = 1;
+    BlockBody body = 2;
+}
+
+message DummyTransaction {
+    string message = 1;
+}
+
+message TransferTransaction {
+    bytes from = 1;
+    bytes to = 2;
+    int64 amount = 3;
+    string symbol = 4;
+}
+
+message IssueTransaction {
+    string symbol = 1;
+    string name = 2;
+    int32 decimals = 3;
+    bytes owner = 4;
+}

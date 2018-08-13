@@ -1,0 +1,10 @@
+[package]
+name = "protos"
+version = "0.0.1"
+authors = ["t10471 <t104711202@gmail.com>"]
+
+[dependencies]
+protobuf = { version = "~2.0", features = ["with-bytes"] }
+
+[build-dependencies]
+protoc-rust = "2.0"
