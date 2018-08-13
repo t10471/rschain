@@ -25,7 +25,7 @@ use protobuf::ProtobufEnum as ProtobufEnum_imported_for_functions;
 pub struct Message {
     // message fields
     pub field_type: Message_MessageType,
-    pub payload: ::std::vec::Vec<u8>,
+    pub payload: ::bytes::Bytes,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
@@ -58,19 +58,19 @@ impl Message {
     }
 
     // Param is passed by value, moved
-    pub fn set_payload(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_payload(&mut self, v: ::bytes::Bytes) {
         self.payload = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_payload(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_payload(&mut self) -> &mut ::bytes::Bytes {
         &mut self.payload
     }
 
     // Take field
-    pub fn take_payload(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.payload, ::std::vec::Vec::new())
+    pub fn take_payload(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.payload, ::bytes::Bytes::new())
     }
 
     pub fn get_payload(&self) -> &[u8] {
@@ -91,7 +91,7 @@ impl ::protobuf::Message for Message {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.field_type, 1, &mut self.unknown_fields)?
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.payload)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.payload)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -170,7 +170,7 @@ impl ::protobuf::Message for Message {
                     |m: &Message| { &m.field_type },
                     |m: &mut Message| { &mut m.field_type },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "payload",
                     |m: &Message| { &m.payload },
                     |m: &mut Message| { &mut m.payload },
@@ -280,9 +280,9 @@ impl ::protobuf::reflect::ProtobufValue for Message_MessageType {
 pub struct Transaction {
     // message fields
     pub field_type: Transaction_TransactionType,
-    pub signature: ::std::vec::Vec<u8>,
+    pub signature: ::bytes::Bytes,
     pub timestamp: i64,
-    pub payload: ::std::vec::Vec<u8>,
+    pub payload: ::bytes::Bytes,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
@@ -315,19 +315,19 @@ impl Transaction {
     }
 
     // Param is passed by value, moved
-    pub fn set_signature(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_signature(&mut self, v: ::bytes::Bytes) {
         self.signature = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_signature(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_signature(&mut self) -> &mut ::bytes::Bytes {
         &mut self.signature
     }
 
     // Take field
-    pub fn take_signature(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.signature, ::std::vec::Vec::new())
+    pub fn take_signature(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.signature, ::bytes::Bytes::new())
     }
 
     pub fn get_signature(&self) -> &[u8] {
@@ -356,19 +356,19 @@ impl Transaction {
     }
 
     // Param is passed by value, moved
-    pub fn set_payload(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_payload(&mut self, v: ::bytes::Bytes) {
         self.payload = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_payload(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_payload(&mut self) -> &mut ::bytes::Bytes {
         &mut self.payload
     }
 
     // Take field
-    pub fn take_payload(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.payload, ::std::vec::Vec::new())
+    pub fn take_payload(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.payload, ::bytes::Bytes::new())
     }
 
     pub fn get_payload(&self) -> &[u8] {
@@ -389,7 +389,7 @@ impl ::protobuf::Message for Transaction {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.field_type, 1, &mut self.unknown_fields)?
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.signature)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.signature)?;
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -399,7 +399,7 @@ impl ::protobuf::Message for Transaction {
                     self.timestamp = tmp;
                 },
                 4 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.payload)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.payload)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -490,7 +490,7 @@ impl ::protobuf::Message for Transaction {
                     |m: &Transaction| { &m.field_type },
                     |m: &mut Transaction| { &mut m.field_type },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "signature",
                     |m: &Transaction| { &m.signature },
                     |m: &mut Transaction| { &mut m.signature },
@@ -500,7 +500,7 @@ impl ::protobuf::Message for Transaction {
                     |m: &Transaction| { &m.timestamp },
                     |m: &mut Transaction| { &mut m.timestamp },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "payload",
                     |m: &Transaction| { &m.payload },
                     |m: &mut Transaction| { &mut m.payload },
@@ -844,8 +844,8 @@ impl ::protobuf::reflect::ProtobufValue for Block {
 pub struct Block_BlockHeader {
     // message fields
     pub timestamp: i64,
-    pub transaction_root: ::std::vec::Vec<u8>,
-    pub previous: ::std::vec::Vec<u8>,
+    pub transaction_root: ::bytes::Bytes,
+    pub previous: ::bytes::Bytes,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
@@ -878,19 +878,19 @@ impl Block_BlockHeader {
     }
 
     // Param is passed by value, moved
-    pub fn set_transaction_root(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_transaction_root(&mut self, v: ::bytes::Bytes) {
         self.transaction_root = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_transaction_root(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_transaction_root(&mut self) -> &mut ::bytes::Bytes {
         &mut self.transaction_root
     }
 
     // Take field
-    pub fn take_transaction_root(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.transaction_root, ::std::vec::Vec::new())
+    pub fn take_transaction_root(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.transaction_root, ::bytes::Bytes::new())
     }
 
     pub fn get_transaction_root(&self) -> &[u8] {
@@ -904,19 +904,19 @@ impl Block_BlockHeader {
     }
 
     // Param is passed by value, moved
-    pub fn set_previous(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_previous(&mut self, v: ::bytes::Bytes) {
         self.previous = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_previous(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_previous(&mut self) -> &mut ::bytes::Bytes {
         &mut self.previous
     }
 
     // Take field
-    pub fn take_previous(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.previous, ::std::vec::Vec::new())
+    pub fn take_previous(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.previous, ::bytes::Bytes::new())
     }
 
     pub fn get_previous(&self) -> &[u8] {
@@ -941,10 +941,10 @@ impl ::protobuf::Message for Block_BlockHeader {
                     self.timestamp = tmp;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.transaction_root)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.transaction_root)?;
                 },
                 3 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.previous)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.previous)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -1029,12 +1029,12 @@ impl ::protobuf::Message for Block_BlockHeader {
                     |m: &Block_BlockHeader| { &m.timestamp },
                     |m: &mut Block_BlockHeader| { &mut m.timestamp },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "transaction_root",
                     |m: &Block_BlockHeader| { &m.transaction_root },
                     |m: &mut Block_BlockHeader| { &mut m.transaction_root },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "previous",
                     |m: &Block_BlockHeader| { &m.previous },
                     |m: &mut Block_BlockHeader| { &mut m.previous },
@@ -1253,7 +1253,7 @@ impl ::protobuf::reflect::ProtobufValue for Block_BlockBody {
 #[derive(PartialEq,Clone,Default)]
 pub struct DummyTransaction {
     // message fields
-    pub message: ::std::string::String,
+    pub message: ::protobuf::Chars,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
@@ -1267,23 +1267,23 @@ impl DummyTransaction {
     // string message = 1;
 
     pub fn clear_message(&mut self) {
-        self.message.clear();
+        ::protobuf::Clear::clear(&mut self.message);
     }
 
     // Param is passed by value, moved
-    pub fn set_message(&mut self, v: ::std::string::String) {
+    pub fn set_message(&mut self, v: ::protobuf::Chars) {
         self.message = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_message(&mut self) -> &mut ::std::string::String {
+    pub fn mut_message(&mut self) -> &mut ::protobuf::Chars {
         &mut self.message
     }
 
     // Take field
-    pub fn take_message(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.message, ::std::string::String::new())
+    pub fn take_message(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.message, ::protobuf::Chars::new())
     }
 
     pub fn get_message(&self) -> &str {
@@ -1301,7 +1301,7 @@ impl ::protobuf::Message for DummyTransaction {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.message)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.message)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -1369,7 +1369,7 @@ impl ::protobuf::Message for DummyTransaction {
         unsafe {
             descriptor.get(|| {
                 let mut fields = ::std::vec::Vec::new();
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                     "message",
                     |m: &DummyTransaction| { &m.message },
                     |m: &mut DummyTransaction| { &mut m.message },
@@ -1416,10 +1416,10 @@ impl ::protobuf::reflect::ProtobufValue for DummyTransaction {
 #[derive(PartialEq,Clone,Default)]
 pub struct TransferTransaction {
     // message fields
-    pub from: ::std::vec::Vec<u8>,
-    pub to: ::std::vec::Vec<u8>,
+    pub from: ::bytes::Bytes,
+    pub to: ::bytes::Bytes,
     pub amount: i64,
-    pub symbol: ::std::string::String,
+    pub symbol: ::protobuf::Chars,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
@@ -1437,19 +1437,19 @@ impl TransferTransaction {
     }
 
     // Param is passed by value, moved
-    pub fn set_from(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_from(&mut self, v: ::bytes::Bytes) {
         self.from = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_from(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_from(&mut self) -> &mut ::bytes::Bytes {
         &mut self.from
     }
 
     // Take field
-    pub fn take_from(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.from, ::std::vec::Vec::new())
+    pub fn take_from(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.from, ::bytes::Bytes::new())
     }
 
     pub fn get_from(&self) -> &[u8] {
@@ -1463,19 +1463,19 @@ impl TransferTransaction {
     }
 
     // Param is passed by value, moved
-    pub fn set_to(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_to(&mut self, v: ::bytes::Bytes) {
         self.to = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_to(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_to(&mut self) -> &mut ::bytes::Bytes {
         &mut self.to
     }
 
     // Take field
-    pub fn take_to(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.to, ::std::vec::Vec::new())
+    pub fn take_to(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.to, ::bytes::Bytes::new())
     }
 
     pub fn get_to(&self) -> &[u8] {
@@ -1500,23 +1500,23 @@ impl TransferTransaction {
     // string symbol = 4;
 
     pub fn clear_symbol(&mut self) {
-        self.symbol.clear();
+        ::protobuf::Clear::clear(&mut self.symbol);
     }
 
     // Param is passed by value, moved
-    pub fn set_symbol(&mut self, v: ::std::string::String) {
+    pub fn set_symbol(&mut self, v: ::protobuf::Chars) {
         self.symbol = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_symbol(&mut self) -> &mut ::std::string::String {
+    pub fn mut_symbol(&mut self) -> &mut ::protobuf::Chars {
         &mut self.symbol
     }
 
     // Take field
-    pub fn take_symbol(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.symbol, ::std::string::String::new())
+    pub fn take_symbol(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.symbol, ::protobuf::Chars::new())
     }
 
     pub fn get_symbol(&self) -> &str {
@@ -1534,10 +1534,10 @@ impl ::protobuf::Message for TransferTransaction {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.from)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.from)?;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.to)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.to)?;
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -1547,7 +1547,7 @@ impl ::protobuf::Message for TransferTransaction {
                     self.amount = tmp;
                 },
                 4 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.symbol)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.symbol)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -1633,12 +1633,12 @@ impl ::protobuf::Message for TransferTransaction {
         unsafe {
             descriptor.get(|| {
                 let mut fields = ::std::vec::Vec::new();
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "from",
                     |m: &TransferTransaction| { &m.from },
                     |m: &mut TransferTransaction| { &mut m.from },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "to",
                     |m: &TransferTransaction| { &m.to },
                     |m: &mut TransferTransaction| { &mut m.to },
@@ -1648,7 +1648,7 @@ impl ::protobuf::Message for TransferTransaction {
                     |m: &TransferTransaction| { &m.amount },
                     |m: &mut TransferTransaction| { &mut m.amount },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                     "symbol",
                     |m: &TransferTransaction| { &m.symbol },
                     |m: &mut TransferTransaction| { &mut m.symbol },
@@ -1698,10 +1698,10 @@ impl ::protobuf::reflect::ProtobufValue for TransferTransaction {
 #[derive(PartialEq,Clone,Default)]
 pub struct IssueTransaction {
     // message fields
-    pub symbol: ::std::string::String,
-    pub name: ::std::string::String,
+    pub symbol: ::protobuf::Chars,
+    pub name: ::protobuf::Chars,
     pub decimals: i32,
-    pub owner: ::std::vec::Vec<u8>,
+    pub owner: ::bytes::Bytes,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
@@ -1715,23 +1715,23 @@ impl IssueTransaction {
     // string symbol = 1;
 
     pub fn clear_symbol(&mut self) {
-        self.symbol.clear();
+        ::protobuf::Clear::clear(&mut self.symbol);
     }
 
     // Param is passed by value, moved
-    pub fn set_symbol(&mut self, v: ::std::string::String) {
+    pub fn set_symbol(&mut self, v: ::protobuf::Chars) {
         self.symbol = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_symbol(&mut self) -> &mut ::std::string::String {
+    pub fn mut_symbol(&mut self) -> &mut ::protobuf::Chars {
         &mut self.symbol
     }
 
     // Take field
-    pub fn take_symbol(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.symbol, ::std::string::String::new())
+    pub fn take_symbol(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.symbol, ::protobuf::Chars::new())
     }
 
     pub fn get_symbol(&self) -> &str {
@@ -1741,23 +1741,23 @@ impl IssueTransaction {
     // string name = 2;
 
     pub fn clear_name(&mut self) {
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
     }
 
     // Param is passed by value, moved
-    pub fn set_name(&mut self, v: ::std::string::String) {
+    pub fn set_name(&mut self, v: ::protobuf::Chars) {
         self.name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.name
     }
 
     // Take field
-    pub fn take_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.name, ::std::string::String::new())
+    pub fn take_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.name, ::protobuf::Chars::new())
     }
 
     pub fn get_name(&self) -> &str {
@@ -1786,19 +1786,19 @@ impl IssueTransaction {
     }
 
     // Param is passed by value, moved
-    pub fn set_owner(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_owner(&mut self, v: ::bytes::Bytes) {
         self.owner = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_owner(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_owner(&mut self) -> &mut ::bytes::Bytes {
         &mut self.owner
     }
 
     // Take field
-    pub fn take_owner(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.owner, ::std::vec::Vec::new())
+    pub fn take_owner(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.owner, ::bytes::Bytes::new())
     }
 
     pub fn get_owner(&self) -> &[u8] {
@@ -1816,10 +1816,10 @@ impl ::protobuf::Message for IssueTransaction {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.symbol)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.symbol)?;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.name)?;
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -1829,7 +1829,7 @@ impl ::protobuf::Message for IssueTransaction {
                     self.decimals = tmp;
                 },
                 4 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.owner)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.owner)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -1915,12 +1915,12 @@ impl ::protobuf::Message for IssueTransaction {
         unsafe {
             descriptor.get(|| {
                 let mut fields = ::std::vec::Vec::new();
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                     "symbol",
                     |m: &IssueTransaction| { &m.symbol },
                     |m: &mut IssueTransaction| { &mut m.symbol },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                     "name",
                     |m: &IssueTransaction| { &m.name },
                     |m: &mut IssueTransaction| { &mut m.name },
@@ -1930,7 +1930,7 @@ impl ::protobuf::Message for IssueTransaction {
                     |m: &IssueTransaction| { &m.decimals },
                     |m: &mut IssueTransaction| { &mut m.decimals },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                     "owner",
                     |m: &IssueTransaction| { &m.owner },
                     |m: &mut IssueTransaction| { &mut m.owner },

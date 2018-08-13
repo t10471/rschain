@@ -8,7 +8,9 @@ fn main() {
       input: &["p2p_message.proto"],
       includes: &["."],
       customize: Customize {
-        ..Default::default()
+          carllerche_bytes_for_bytes: Some(true),
+          carllerche_bytes_for_string: Some(true),
+          ..Default::default()
       },
   }).expect("protoc");
 }
