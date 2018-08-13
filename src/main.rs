@@ -21,7 +21,6 @@ mod rpc;
 use tokio::prelude::*;
 use tokio::runtime::Runtime;
 
-
 #[macro_use]
 extern crate clap;
 
@@ -33,12 +32,12 @@ struct Conf {
   rpc: String,
   peers: Vec<String>,
 }
+
 fn main() {
   let conf = parse_args();
   println!("{:?}", conf);
   let mut rt = Runtime::new().unwrap();
-  let state = p2p::start_server(&mut rt, &conf.p2p);
-  p2p::connect_peers(state, conf.peers);
+  p2p::start_server(&mut rt, &conf.p2p, conf.peers);
   println!("chat server running on {}", conf.p2p);
   rpc::start_server(&mut rt, &conf.rpc);
   println!("rpc server running on {}", conf.rpc);

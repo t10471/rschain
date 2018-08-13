@@ -9,9 +9,9 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
 use std::collections::HashMap;
+use std::mem;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-
+use std::sync::{Arc, Mutex, Once, ONCE_INIT};
 
 /// Shorthand for the transmit half of the message channel.
 type Tx = mpsc::UnboundedSender<Bytes>;
@@ -19,61 +19,65 @@ type Tx = mpsc::UnboundedSender<Bytes>;
 /// Shorthand for the receive half of the message channel.
 type Rx = mpsc::UnboundedReceiver<Bytes>;
 
-/// Data that is shared between all peers in the chat server.
-pub struct Shared {
+#[derive(Clone)]
+struct Shared {
+  inner: Arc<Mutex<Peers>>,
+}
+
+struct Peers {
   peers: HashMap<SocketAddr, Tx>,
+}
+
+fn all_peers() -> Shared {
+  static mut SINGLETON: *const Shared = 0 as *const Shared;
+  static ONCE: Once = ONCE_INIT;
+
+  unsafe {
+    ONCE.call_once(|| {
+      let singleton = Shared {
+        inner: Arc::new(Mutex::new(Peers {
+          peers: HashMap::new(),
+        })),
+      };
+      SINGLETON = mem::transmute(Box::new(singleton));
+    });
+    (*SINGLETON).clone()
+  }
 }
 
 /// The state for each connected client.
 struct Peer {
-  /// Name of the peer.
   name: BytesMut,
-  /// The TCP socket wrapped with the `Lines` codec, defined below.
   lines: Lines,
-  /// Handle to the shared chat state.
-  state: Arc<Mutex<Shared>>,
-  /// Receive half of the message channel.
   rx: Rx,
-  /// Client socket address.
   addr: SocketAddr,
 }
 
 /// Line based codec
 #[derive(Debug)]
 struct Lines {
-  /// The TCP socket.
   socket: TcpStream,
-  /// Buffer used when reading from the socket. Data is not returned from this
-  /// buffer until an entire line has been read.
   rd: BytesMut,
-  /// Buffer used to stage data before writing it to the socket.
   wr: BytesMut,
-}
-
-impl Shared {
-  /// Create a new, empty, instance of `Shared`.
-  fn new() -> Self {
-    Shared { peers: HashMap::new() }
-  }
 }
 
 impl Peer {
   /// Create a new instance of `Peer`.
-  fn new(name: BytesMut, state: Arc<Mutex<Shared>>, lines: Lines) -> Peer {
+  fn new(name: BytesMut, lines: Lines) -> (Peer, Tx) {
     // Get the client socket address
     let addr = lines.socket.peer_addr().unwrap();
     // Create a channel for this peer
     let (tx, rx) = mpsc::unbounded();
     // Add an entry for this `Peer` in the shared state map.
-    state.lock().unwrap().peers.insert(addr, tx);
-
-    Peer {
-      name,
-      lines,
-      state,
-      rx,
-      addr,
-    }
+    (
+      Peer {
+        name,
+        lines,
+        rx,
+        addr,
+      },
+      tx,
+    )
   }
 }
 
@@ -84,7 +88,6 @@ impl Future for Peer {
 
   fn poll(&mut self) -> Poll<(), io::Error> {
     const LINES_PER_TICK: usize = 10;
-
     // Receive all messages from peers.
     for i in 0..LINES_PER_TICK {
       match self.rx.poll().unwrap() {
@@ -113,8 +116,8 @@ impl Future for Peer {
         line.extend_from_slice(b"\r\n");
 
         let line = line.freeze();
-
-        for (addr, tx) in &self.state.lock().unwrap().peers {
+        let all = all_peers().inner;
+        for (addr, tx) in &all.lock().unwrap().peers {
           if *addr != self.addr {
             tx.unbounded_send(line.clone()).unwrap();
           }
@@ -130,7 +133,8 @@ impl Future for Peer {
 
 impl Drop for Peer {
   fn drop(&mut self) {
-    self.state.lock().unwrap().peers.remove(&self.addr);
+    let all = all_peers().inner;
+    &all.lock().unwrap().peers.remove(&self.addr);
   }
 }
 
@@ -173,7 +177,6 @@ impl Lines {
     loop {
       // Ensure the read buffer has capacity.
       self.rd.reserve(1024);
-
       // Read data into the buffer.
       let n = try_ready!(self.socket.read_buf(&mut self.rd));
 
@@ -218,65 +221,76 @@ impl Stream for Lines {
 }
 
 /// Spawn a task to manage the socket.
-fn process(socket: TcpStream, state: Arc<Mutex<Shared>>) {
+fn process(socket: TcpStream) {
   let lines = Lines::new(socket);
   let connection = lines
     .into_future()
     .map_err(|(e, _)| e)
     .and_then(|(hello, lines)| {
+      println!("fist message {:?}", hello);
       match hello {
         Some(h) => {
-          if format!("{:?}", h) != "hello" {
+          if format!("{:?}", h) != "b\"hello\"" {
             println!("`{:?}` invalid connection", h);
             return Either::A(future::ok(()));
           }
         }
         None => {
-          // The remote client closed the connection without sending any data.
+          println!("invalid message {:?}", hello);
           return Either::A(future::ok(()));
         }
       };
       let remote = format!("{}", lines.socket.peer_addr().unwrap());
       println!("`{:?}` is joining the chat", remote);
-      let peer = Peer::new(BytesMut::from(remote), state, lines);
+      let (peer, tx) = Peer::new(BytesMut::from(remote), lines);
+      let all = all_peers().inner;
+      // tx.unbounded_send(BytesMut::from(&b"hello\r\n"[..]).freeze().clone()).unwrap();
+      all.lock().unwrap().peers.insert(peer.addr, tx);
       Either::B(peer)
     })
-    .map_err(|e| {
-      println!("connection error = {:?}", e);
-    });
+    .map_err(|e| println!("connection error = {:?}", e));
   tokio::spawn(connection);
 }
 
-pub fn start_server(rt: &mut tokio::runtime::Runtime, addr: &String) ->  Arc<Mutex<Shared>>{
-  let state = Arc::new(Mutex::new(Shared::new()));
+pub fn start_server(rt: &mut tokio::runtime::Runtime, addr: &String, peers: Vec<String>) {
   let addr = addr.parse().unwrap();
   let listener = TcpListener::bind(&addr).unwrap();
   let server = listener
     .incoming()
     .map_err(|e| println!("accept error = {:?}", e))
     .for_each(move |socket| {
-      process(socket, state.clone());
+      process(socket);
       Ok(())
     });
   rt.spawn(server);
-  state
+  connect_peers(rt, peers);
 }
 
-pub fn connect_peers(state: Arc<Mutex<Shared>>, peers: Vec<String>) {
-  peers.into_iter().map(|p| {
-    TcpStream::connect(&p.parse().unwrap())
-      .map_err(|e| println!("accept error = {:?}", e))
-      .map(|s| {
-        let lines = Lines::new(s);
-        let addr = lines.socket.peer_addr().unwrap();
-        Peer::new(BytesMut::from(format!("{}", addr)), state.clone(), lines);
-        match state.lock().unwrap().peers.get(&addr) {
-          Some(tx) => tx.unbounded_send(BytesMut::from("hello\r\n").freeze().clone()).unwrap(),
-          None => print!("{} not exists", addr),
-        }
-      })
-      .map_err(|e| {
-        println!("connection error = {:?}", e);
-      })
+fn connect_peers(rt: &mut tokio::runtime::Runtime, peers: Vec<String>) {
+  #![allow(unused)]
+  peers.iter().for_each(|p| match p.is_empty() {
+    true => (),
+    false => {
+      let x = TcpStream::connect(&p.parse().unwrap())
+        .and_then(move |s| {
+          let lines = Lines::new(s);
+          let addr = lines.socket.peer_addr().unwrap();
+          let (peer, tx) = Peer::new(BytesMut::from(format!("{}", addr)), lines);
+          match tx.unbounded_send(BytesMut::from(&b"hello\r\n"[..]).freeze().clone()) {
+            Ok(_) => {
+              println!("sent peer {}", peer.addr);
+              let all = all_peers().inner;
+              all.lock().unwrap().peers.insert(peer.addr, tx);
+              Either::B(peer)
+            }
+            Err(e) => {
+              println!("connection error = {:?}", e);
+              Either::A(future::ok(()))
+            }
+          }
+        })
+        .map_err(|e| println!("connection error = {:?}", e));
+      rt.spawn(x);
+    }
   });
 }
