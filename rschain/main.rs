@@ -69,7 +69,7 @@ fn start_node(matches: &ArgMatches) {
 
   let mut rt = Runtime::new().unwrap();
   p2p::start_server(&mut rt, &conf.p2p, conf.peers);
-  println!("chat server running on {}", conf.p2p);
+  println!("p2p server running on {}", conf.p2p);
   rpc::start_server(&mut rt, &conf.rpc);
   println!("rpc server running on {}", conf.rpc);
   rt.shutdown_on_idle().wait().unwrap();

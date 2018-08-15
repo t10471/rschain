@@ -20,6 +20,8 @@ type Sender = mpsc::UnboundedSender<Bytes>;
 
 type Reciver = mpsc::UnboundedReceiver<Bytes>;
 
+const STREAM_PER_TICK: usize = 10;
+
 #[derive(Clone)]
 struct Shared {
   inner: Arc<Mutex<Peers>>,
@@ -48,26 +50,26 @@ fn all_peers() -> Shared {
 
 struct Peer {
   name: BytesMut,
-  lines: Lines,
+  stream: P2PStream,
   reciver: Reciver,
   addr: SocketAddr,
 }
 
 #[derive(Debug)]
-struct Lines {
+struct P2PStream {
   socket: TcpStream,
   reader: BytesMut,
   writer: BytesMut,
 }
 
 impl Peer {
-  fn new(name: BytesMut, lines: Lines) -> (Peer, Sender) {
-    let addr = lines.socket.peer_addr().unwrap();
+  fn new(name: BytesMut, stream: P2PStream) -> (Peer, Sender) {
+    let addr = stream.socket.peer_addr().unwrap();
     let (sender, reciver) = mpsc::unbounded();
     (
       Peer {
         name,
-        lines,
+        stream,
         reciver,
         addr,
       },
@@ -76,12 +78,11 @@ impl Peer {
   }
 
   fn write_recived(&mut self) {
-    const LINES_PER_TICK: usize = 10;
-    for i in 0..LINES_PER_TICK {
+    for i in 0..STREAM_PER_TICK {
       match self.reciver.poll().unwrap() {
         Async::Ready(Some(v)) => {
-          self.lines.buffer(&v);
-          if i + 1 == LINES_PER_TICK {
+          self.stream.buffer(&v);
+          if i + 1 == STREAM_PER_TICK {
             task::current().notify();
           }
         }
@@ -92,11 +93,11 @@ impl Peer {
 
   fn broadcast(&mut self, message: BytesMut) {
     println!("broadcast from = {:?}, message = {:?}", self.name, message);
-    let line = message.freeze();
+    let freezed = message.freeze();
     let all = all_peers().inner;
     for (addr, tx) in &all.lock().unwrap().peers {
       if *addr != self.addr {
-        tx.unbounded_send(line.clone()).unwrap();
+        tx.unbounded_send(freezed.clone()).unwrap();
       }
     }
   }
@@ -108,10 +109,10 @@ impl Future for Peer {
 
   fn poll(&mut self) -> Poll<(), io::Error> {
     self.write_recived();
-    self.lines.poll_flush()?;
+    self.stream.poll_flush()?;
 
-    while let Async::Ready(line) = self.lines.poll()? {
-      if let Some(message) = line {
+    while let Async::Ready(stream) = self.stream.poll()? {
+      if let Some(message) = stream {
         self.broadcast(message);
       } else {
         return Ok(Async::Ready(()));
@@ -128,18 +129,18 @@ impl Drop for Peer {
   }
 }
 
-impl Lines {
+impl P2PStream {
   fn new(socket: TcpStream) -> Self {
-    Lines {
+    P2PStream {
       socket,
       reader: BytesMut::new(),
       writer: BytesMut::new(),
     }
   }
 
-  fn buffer(&mut self, line: &[u8]) {
-    self.writer.reserve(line.len());
-    self.writer.put(line);
+  fn buffer(&mut self, message: &[u8]) {
+    self.writer.reserve(message.len());
+    self.writer.put(message);
   }
 
   fn poll_flush(&mut self) -> Poll<(), io::Error> {
@@ -161,7 +162,7 @@ impl Lines {
   }
 }
 
-impl Stream for Lines {
+impl Stream for P2PStream {
   type Item = BytesMut;
   type Error = io::Error;
 
@@ -193,17 +194,17 @@ fn is_valid_handshake_message(message: Option<BytesMut>) -> bool {
 }
 
 fn process(socket: TcpStream) {
-  let connection = Lines::new(socket)
+  let connection = P2PStream::new(socket)
     .into_future()
     .map_err(|(e, _)| e)
-    .and_then(|(message, lines)| {
+    .and_then(|(message, stream)| {
       println!("fist message {:?}", message);
       if !is_valid_handshake_message(message) {
         return Either::A(future::ok(()));
       }
-      let remote = format!("{}", lines.socket.peer_addr().unwrap());
+      let remote = format!("{}", stream.socket.peer_addr().unwrap());
       println!("`{:?}` is joining p2p", remote);
-      let (peer, tx) = Peer::new(BytesMut::from(remote), lines);
+      let (peer, tx) = Peer::new(BytesMut::from(remote), stream);
       let all = all_peers().inner;
       all.lock().unwrap().peers.insert(peer.addr, tx);
       Either::B(peer)
@@ -236,9 +237,9 @@ fn connect_peers(rt: &mut tokio::runtime::Runtime, peers: Vec<String>) {
 fn connect(rt: &mut tokio::runtime::Runtime, peer: &String) {
   let x = TcpStream::connect(&peer.parse().unwrap())
     .and_then(move |s| {
-      let lines = Lines::new(s);
-      let addr = lines.socket.peer_addr().unwrap();
-      let (peer, tx) = Peer::new(BytesMut::from(format!("{}", addr)), lines);
+      let stream = P2PStream::new(s);
+      let addr = stream.socket.peer_addr().unwrap();
+      let (peer, tx) = Peer::new(BytesMut::from(format!("{}", addr)), stream);
       let mut msg = p2p_m::Message::new();
       msg.set_field_type(p2p_m::Message_MessageType::Handshake);
       msg.set_payload(Bytes::from(&b"handshake"[..]));
