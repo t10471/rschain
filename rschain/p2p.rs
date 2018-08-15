@@ -13,6 +13,9 @@ use std::mem;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, Once, ONCE_INIT};
 
+use protobuf::*;
+use protos::p2p_message as p2p_m;
+
 type Sender = mpsc::UnboundedSender<Bytes>;
 
 type Reciver = mpsc::UnboundedReceiver<Bytes>;
@@ -71,13 +74,8 @@ impl Peer {
       sender,
     )
   }
-}
 
-impl Future for Peer {
-  type Item = ();
-  type Error = io::Error;
-
-  fn poll(&mut self) -> Poll<(), io::Error> {
+  fn write_recived(&mut self) {
     const LINES_PER_TICK: usize = 10;
     for i in 0..LINES_PER_TICK {
       match self.reciver.poll().unwrap() {
@@ -90,30 +88,35 @@ impl Future for Peer {
         _ => break,
       }
     }
+  }
 
-    let _ = self.lines.poll_flush()?;
+  fn broadcast(&mut self, message: BytesMut) {
+    println!("broadcast from = {:?}, message = {:?}", self.name, message);
+    let line = message.freeze();
+    let all = all_peers().inner;
+    for (addr, tx) in &all.lock().unwrap().peers {
+      if *addr != self.addr {
+        tx.unbounded_send(line.clone()).unwrap();
+      }
+    }
+  }
+}
+
+impl Future for Peer {
+  type Item = ();
+  type Error = io::Error;
+
+  fn poll(&mut self) -> Poll<(), io::Error> {
+    self.write_recived();
+    self.lines.poll_flush()?;
 
     while let Async::Ready(line) = self.lines.poll()? {
-      println!("Received line ({:?}) : {:?}", self.name, line);
-
       if let Some(message) = line {
-        let mut line = self.name.clone();
-        line.extend_from_slice(b": ");
-        line.extend_from_slice(&message);
-        line.extend_from_slice(b"\r\n");
-
-        let line = line.freeze();
-        let all = all_peers().inner;
-        for (addr, tx) in &all.lock().unwrap().peers {
-          if *addr != self.addr {
-            tx.unbounded_send(line.clone()).unwrap();
-          }
-        }
+        self.broadcast(message);
       } else {
         return Ok(Async::Ready(()));
       }
     }
-
     Ok(Async::NotReady)
   }
 }
@@ -142,21 +145,16 @@ impl Lines {
   fn poll_flush(&mut self) -> Poll<(), io::Error> {
     while !self.writer.is_empty() {
       let n = try_ready!(self.socket.poll_write(&self.writer));
-
       assert!(n > 0);
-
-      let _ = self.writer.split_to(n);
+      self.writer.split_to(n);
     }
-
     Ok(Async::Ready(()))
   }
 
   fn fill_read_buf(&mut self) -> Poll<(), io::Error> {
     loop {
       self.reader.reserve(1024);
-      let n = try_ready!(self.socket.read_buf(&mut self.reader));
-
-      if n == 0 {
+      if try_ready!(self.socket.read_buf(&mut self.reader)) == 0 {
         return Ok(Async::Ready(()));
       }
     }
@@ -168,51 +166,43 @@ impl Stream for Lines {
   type Error = io::Error;
 
   fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-    let sock_closed = self.fill_read_buf()?.is_ready();
-
-    let pos = self
-      .reader
-      .windows(2)
-      .enumerate()
-      .find(|&(_, bytes)| bytes == b"\r\n")
-      .map(|(i, _)| i);
-
-    if let Some(pos) = pos {
-      let mut line = self.reader.split_to(pos + 2);
-
-      line.split_off(pos);
-      return Ok(Async::Ready(Some(line)));
-    }
-
-    if sock_closed {
-      Ok(Async::Ready(None))
-    } else {
-      Ok(Async::NotReady)
+    match (self.fill_read_buf()?.is_ready(), self.reader.len()) {
+      (_, n) if n > 0 => Ok(Async::Ready(Some(self.reader.split_to(n)))),
+      (true, _) => Ok(Async::Ready(None)),
+      _ => Ok(Async::NotReady),
     }
   }
 }
 
+fn is_valid_handshake_message(message: Option<BytesMut>) -> bool {
+  if let Some(msg) = message {
+    match parse_from_bytes::<p2p_m::Message>(&msg)
+      .unwrap()
+      .get_field_type()
+    {
+      p2p_m::Message_MessageType::Handshake => true,
+      t => {
+        println!("invalid Message_MessageType `{:?}`", t);
+        false
+      }
+    }
+  } else {
+    println!("recieved empty message");
+    false
+  }
+}
+
 fn process(socket: TcpStream) {
-  let lines = Lines::new(socket);
-  let connection = lines
+  let connection = Lines::new(socket)
     .into_future()
     .map_err(|(e, _)| e)
-    .and_then(|(hello, lines)| {
-      println!("fist message {:?}", hello);
-      match hello {
-        Some(h) => {
-          if format!("{:?}", h) != "b\"hello\"" {
-            println!("`{:?}` invalid connection", h);
-            return Either::A(future::ok(()));
-          }
-        }
-        None => {
-          println!("invalid message {:?}", hello);
-          return Either::A(future::ok(()));
-        }
-      };
+    .and_then(|(message, lines)| {
+      println!("fist message {:?}", message);
+      if !is_valid_handshake_message(message) {
+        return Either::A(future::ok(()));
+      }
       let remote = format!("{}", lines.socket.peer_addr().unwrap());
-      println!("`{:?}` is joining the chat", remote);
+      println!("`{:?}` is joining p2p", remote);
       let (peer, tx) = Peer::new(BytesMut::from(remote), lines);
       let all = all_peers().inner;
       all.lock().unwrap().peers.insert(peer.addr, tx);
@@ -223,9 +213,8 @@ fn process(socket: TcpStream) {
 }
 
 pub fn start_server(rt: &mut tokio::runtime::Runtime, addr: &String, peers: Vec<String>) {
-  let addr = addr.parse().unwrap();
-  let listener = TcpListener::bind(&addr).unwrap();
-  let server = listener
+  let server = TcpListener::bind(&addr.parse().unwrap())
+    .unwrap()
     .incoming()
     .map_err(|e| println!("accept error = {:?}", e))
     .for_each(move |socket| {
@@ -237,30 +226,37 @@ pub fn start_server(rt: &mut tokio::runtime::Runtime, addr: &String, peers: Vec<
 }
 
 fn connect_peers(rt: &mut tokio::runtime::Runtime, peers: Vec<String>) {
-  #![allow(unused)]
-  peers.iter().for_each(|p| match p.is_empty() {
-    true => (),
-    false => {
-      let x = TcpStream::connect(&p.parse().unwrap())
-        .and_then(move |s| {
-          let lines = Lines::new(s);
-          let addr = lines.socket.peer_addr().unwrap();
-          let (peer, tx) = Peer::new(BytesMut::from(format!("{}", addr)), lines);
-          match tx.unbounded_send(BytesMut::from(&b"hello\r\n"[..]).freeze().clone()) {
-            Ok(_) => {
-              println!("sent peer {}", peer.addr);
-              let all = all_peers().inner;
-              all.lock().unwrap().peers.insert(peer.addr, tx);
-              Either::B(peer)
-            }
-            Err(e) => {
-              println!("connection error = {:?}", e);
-              Either::A(future::ok(()))
-            }
-          }
-        })
-        .map_err(|e| println!("connection error = {:?}", e));
-      rt.spawn(x);
+  peers.iter().for_each(|p| {
+    if !p.is_empty() {
+      connect(rt, p)
     }
   });
+}
+
+fn connect(rt: &mut tokio::runtime::Runtime, peer: &String) {
+  let x = TcpStream::connect(&peer.parse().unwrap())
+    .and_then(move |s| {
+      let lines = Lines::new(s);
+      let addr = lines.socket.peer_addr().unwrap();
+      let (peer, tx) = Peer::new(BytesMut::from(format!("{}", addr)), lines);
+      let mut msg = p2p_m::Message::new();
+      msg.set_field_type(p2p_m::Message_MessageType::Handshake);
+      msg.set_payload(Bytes::from(&b"handshake"[..]));
+      let x = Bytes::from(msg.write_to_bytes().unwrap());
+      println!("handshake: sent bytes {:?}", x);
+      match tx.unbounded_send(x) {
+        Ok(_) => {
+          println!("sent peer {}", peer.addr);
+          let all = all_peers().inner;
+          all.lock().unwrap().peers.insert(peer.addr, tx);
+          Either::B(peer)
+        }
+        Err(e) => {
+          println!("connection error = {:?}", e);
+          Either::A(future::ok(()))
+        }
+      }
+    })
+    .map_err(|e| println!("connection error = {:?}", e));
+  rt.spawn(x);
 }

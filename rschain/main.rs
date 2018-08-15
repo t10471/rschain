@@ -26,6 +26,8 @@ extern crate rust_base58;
 
 extern crate rocksdb;
 
+extern crate protobuf;
+
 #[macro_use]
 extern crate clap;
 use clap::{App, ArgMatches};

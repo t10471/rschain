@@ -23,6 +23,7 @@ sha2 = "^0.7"
 rand = "0.4"
 rust-base58 = "*"
 rocksdb = "0.10"
+protobuf = { version = "~2.0", features = ["with-bytes"] }
 protos = { path = "protos" }
 
 [[bin]]
