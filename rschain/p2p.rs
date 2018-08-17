@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use bytes::{BufMut, Bytes, BytesMut};
 use futures::future::{self, Either};
 use futures::sync::mpsc;
@@ -49,7 +47,7 @@ fn all_peers() -> Shared {
 }
 
 struct Peer {
-  name: BytesMut,
+  name: String,
   stream: P2PStream,
   reciver: Reciver,
   addr: SocketAddr,
@@ -63,7 +61,7 @@ struct P2PStream {
 }
 
 impl Peer {
-  fn new(name: BytesMut, stream: P2PStream) -> (Peer, Sender) {
+  fn new(name: String, stream: P2PStream) -> (Peer, Sender) {
     let addr = stream.socket.peer_addr().unwrap();
     let (sender, reciver) = mpsc::unbounded();
     (
@@ -90,17 +88,6 @@ impl Peer {
       }
     }
   }
-
-  fn broadcast(&mut self, message: BytesMut) {
-    println!("broadcast from = {:?}, message = {:?}", self.name, message);
-    let freezed = message.freeze();
-    let all = all_peers().inner;
-    for (addr, tx) in &all.lock().unwrap().peers {
-      if *addr != self.addr {
-        tx.unbounded_send(freezed.clone()).unwrap();
-      }
-    }
-  }
 }
 
 impl Future for Peer {
@@ -113,7 +100,7 @@ impl Future for Peer {
 
     while let Async::Ready(stream) = self.stream.poll()? {
       if let Some(message) = stream {
-        self.broadcast(message);
+        broadcast(&self.name, message.freeze(), Some(&self.addr));
       } else {
         return Ok(Async::Ready(()));
       }
@@ -175,6 +162,22 @@ impl Stream for P2PStream {
   }
 }
 
+fn broadcast(name: &String, message: Bytes, from: Option<&SocketAddr>) {
+  println!("broadcast from = {:?}, message = {:?}", name, message);
+  let all = all_peers().inner;
+  for (addr, tx) in &all.lock().unwrap().peers {
+    match from {
+      Some(f)  => {
+        if f != addr {
+          tx.unbounded_send(message.clone()).unwrap()
+        }
+      },
+      
+      None => tx.unbounded_send(message.clone()).unwrap()
+    }    
+  }
+}
+
 fn is_valid_handshake_message(message: Option<BytesMut>) -> bool {
   if let Some(msg) = message {
     match parse_from_bytes::<p2p_m::Message>(&msg)
@@ -204,7 +207,7 @@ fn process(socket: TcpStream) {
       }
       let remote = format!("{}", stream.socket.peer_addr().unwrap());
       println!("`{:?}` is joining p2p", remote);
-      let (peer, tx) = Peer::new(BytesMut::from(remote), stream);
+      let (peer, tx) = Peer::new(remote, stream);
       let all = all_peers().inner;
       all.lock().unwrap().peers.insert(peer.addr, tx);
       Either::B(peer)
@@ -239,7 +242,7 @@ fn connect(rt: &mut tokio::runtime::Runtime, peer: &String) {
     .and_then(move |s| {
       let stream = P2PStream::new(s);
       let addr = stream.socket.peer_addr().unwrap();
-      let (peer, tx) = Peer::new(BytesMut::from(format!("{}", addr)), stream);
+      let (peer, tx) = Peer::new(format!("{}", addr), stream);
       let mut msg = p2p_m::Message::new();
       msg.set_field_type(p2p_m::Message_MessageType::Handshake);
       msg.set_payload(Bytes::from(&b"handshake"[..]));
@@ -260,4 +263,13 @@ fn connect(rt: &mut tokio::runtime::Runtime, peer: &String) {
     })
     .map_err(|e| println!("connection error = {:?}", e));
   rt.spawn(x);
+}
+
+pub fn send_bye() {
+  let mut msg = p2p_m::Message::new();
+  msg.set_field_type(p2p_m::Message_MessageType::Bye);
+  msg.set_payload(Bytes::from(&b"byebye"[..]));
+  let x = Bytes::from(msg.write_to_bytes().unwrap());
+  println!("bye: sent bytes {:?}", x);
+  broadcast(&"my".to_string(), x, None);
 }

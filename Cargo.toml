@@ -25,6 +25,8 @@ rust-base58 = "*"
 rocksdb = "0.10"
 protobuf = { version = "~2.0", features = ["with-bytes"] }
 protos = { path = "protos" }
+ctrlc = { version = "3.0", features = ["termination"] }
+tokio-timer = "0.2"
 
 [[bin]]
 path = "rschain/main.rs"

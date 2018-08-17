@@ -2,6 +2,7 @@ extern crate hyper;
 #[macro_use]
 extern crate futures;
 extern crate bytes;
+extern crate ctrlc;
 extern crate http;
 extern crate httparse;
 
@@ -13,16 +14,17 @@ extern crate time;
 
 extern crate tokio;
 extern crate tokio_codec;
-extern crate tokio_io;
 extern crate tokio_fs;
+extern crate tokio_io;
+extern crate tokio_timer;
 
 use tokio::prelude::*;
 use tokio::runtime::Runtime;
 
-extern crate rand;
-extern crate sha2;
 extern crate ed25519_dalek;
+extern crate rand;
 extern crate rust_base58;
+extern crate sha2;
 
 extern crate rocksdb;
 
@@ -32,11 +34,17 @@ extern crate protobuf;
 extern crate clap;
 use clap::{App, ArgMatches};
 
+mod account;
 mod p2p;
 mod rpc;
-mod account;
 
 extern crate protos;
+
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use std::thread;
+use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 struct Conf {
@@ -72,7 +80,18 @@ fn start_node(matches: &ArgMatches) {
   println!("p2p server running on {}", conf.p2p);
   rpc::start_server(&mut rt, &conf.rpc);
   println!("rpc server running on {}", conf.rpc);
-  rt.shutdown_on_idle().wait().unwrap();
+  let running = Arc::new(AtomicBool::new(true));
+  let r = running.clone();
+  ctrlc::set_handler(move || {
+    r.store(false, Ordering::SeqCst);
+  }).expect("error setting Ctrl-C handler");
+  println!("waiting for Ctrl-C...");
+  while running.load(Ordering::SeqCst) {}
+  println!("start send bye{:?}", Instant::now());
+  p2p::send_bye();
+  thread::sleep(Duration::from_secs(3));
+  println!("start shutdown bye{:?}", Instant::now());
+  rt.shutdown_now().wait().unwrap();
 }
 
 fn mk_peers(matches: &ArgMatches) -> Vec<String> {
@@ -87,7 +106,10 @@ fn mk_peers(matches: &ArgMatches) -> Vec<String> {
 fn manage_account(matches: &ArgMatches) {
   if matches.is_present("create") {
     let account = account::create();
-    println!("seceret key {:?}", account.secret.as_ref().unwrap().to_bytes());
+    println!(
+      "seceret key {:?}",
+      account.secret.as_ref().unwrap().to_bytes()
+    );
     println!("public key {:?}", account.address());
   }
 }
