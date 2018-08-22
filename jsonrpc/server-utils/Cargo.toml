@@ -1,0 +1,14 @@
+[package]
+description = "Server utils for jsonrpc-core crate."
+name = "jsonrpc-server-utils"
+version = "8.0.1"
+authors = ["tomusdrw <tomasz@parity.io>"]
+license = "MIT"
+keywords = ["jsonrpc", "json-rpc", "json", "rpc", "serde"]
+
+[dependencies]
+globset = "0.4"
+log = "0.4"
+jsonrpc-core = { version = "8.0", path = "../core" }
+bytes = "0.4"
+tokio-codec = "0.1"

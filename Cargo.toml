@@ -27,6 +27,10 @@ protobuf = { version = "~2.0", features = ["with-bytes"] }
 protos = { path = "protos" }
 ctrlc = { version = "3.0", features = ["termination"] }
 tokio-timer = "0.2"
+jsonrpc-core = { path = "./jsonrpc/core" }
+jsonrpc-http-server = { path = "./jsonrpc/http" }
+jsonrpc-macros = { path = "./jsonrpc/macros" }
+jsonrpc-server-utils = { path = "./jsonrpc/server-utils" }
 
 [[bin]]
 path = "rschain/main.rs"
