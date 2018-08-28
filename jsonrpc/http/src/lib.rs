@@ -72,7 +72,7 @@ pub enum RequestMiddlewareAction<T, U: Responsible> {
 	}
 }
 
-impl<T, U: Responsible> From<Response<U>> for RequestMiddlewareAction<T, U> {
+impl<T, U: Responsible + Into<Self> + Send + 'static> From<Response<U>> for RequestMiddlewareAction<T, U> {
 	fn from(o: Response<U>) -> Self {
 		RequestMiddlewareAction::Respond {
 			should_validate_hosts: true,
@@ -81,7 +81,7 @@ impl<T, U: Responsible> From<Response<U>> for RequestMiddlewareAction<T, U> {
 	}
 }
 
-impl<T, U: Responsible> From<http::Response<U>> for RequestMiddlewareAction<T, U> {
+impl<T, U: Responsible + Send + 'static> From<http::Response<U>> for RequestMiddlewareAction<T, U> {
 	fn from(response: http::Response<U>) -> Self {
 		RequestMiddlewareAction::Respond {
 			should_validate_hosts: true,
@@ -91,7 +91,7 @@ impl<T, U: Responsible> From<http::Response<U>> for RequestMiddlewareAction<T, U
 }
 
 impl<T, U: Responsible> From<http::Request<T>> for RequestMiddlewareAction<T, U> {
-	fn from<T>(request: http::Request<T>) -> Self {
+	fn from(request: http::Request<T>) -> Self {
 		RequestMiddlewareAction::Proceed {
 			should_continue_on_invalid_cors: false,
 			request,
@@ -154,7 +154,8 @@ pub struct Rpc<T, M: jsonrpc::Metadata = (), S: jsonrpc::Middleware<M> = jsonrpc
 	pub extractor: Arc<MetaExtractor<M, T>>,
 }
 
-impl<M: jsonrpc::Metadata, S: jsonrpc::Middleware<M>> Clone for Rpc<M, S> {
+impl<M: jsonrpc::Metadata, S: jsonrpc::Middleware<M>> Clone for Rpc<M, S>
+where S: jsonrpc_core::Metadata {
 	fn clone(&self) -> Self {
 		Rpc {
 			handler: self.handler.clone(),

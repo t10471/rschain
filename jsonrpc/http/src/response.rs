@@ -102,8 +102,8 @@ pub fn too_large<S: Into<String>>(msg: S) -> Response<String> {
 	}
 }
 
-impl Into<http::Response<String>> for Response<String> {
-	fn into(self) -> http::Response<String> {
+impl<U: Responsible> Into<http::Response<U>> for Response<U> {
+	fn into(self) -> http::Response<U> {
 		http::response::Builder::new()	
 		.status(self.code)
 		.header(CONTENT_TYPE, HeaderValue::from_static(format!("{}", self.content_type)))
@@ -111,3 +111,7 @@ impl Into<http::Response<String>> for Response<String> {
 		.unwrap()
 	}
 }
+
+// impl<T> Into<http::Response<T>> for Response<String> {
+
+// }
