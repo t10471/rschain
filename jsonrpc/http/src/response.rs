@@ -111,7 +111,3 @@ impl<U: Responsible> Into<http::Response<U>> for Response<U> {
 		.unwrap()
 	}
 }
-
-// impl<T> Into<http::Response<T>> for Response<String> {
-
-// }
