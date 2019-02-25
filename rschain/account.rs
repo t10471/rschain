@@ -1,11 +1,11 @@
-use rand::OsRng;
+use rand::rngs::OsRng;
 use sha2::Sha512;
 use ed25519_dalek::{Keypair, SecretKey, PublicKey};
 use rust_base58::ToBase58;
 use rocksdb::DB;
 use std::fs;
 use std::path::Path;
-use std::env;
+use dirs;
 
 const ACCOUNT_DIR: &'static str = ".rschain";
 
@@ -25,14 +25,14 @@ impl Account {
 
 pub fn create() -> Account {
   let mut cspring: OsRng = OsRng::new().unwrap();
-  let k: Keypair = Keypair::generate::<Sha512>(&mut cspring);
+  let k: Keypair = Keypair::generate::<Sha512, _>(&mut cspring);
   let account = Account {secret: Some(k.secret), public: k.public};
   save_account(&account);
   account
 }
 
 fn get_account_dir() -> String {
-  let mut h = env::home_dir().unwrap();
+  let mut h = dirs::home_dir().unwrap();
   h.push(ACCOUNT_DIR);
   h.into_os_string().into_string().unwrap()
 }
